@@ -1,25 +1,24 @@
 const accountSchema = require("../schema/accountSchema")
 
 const depositAmount = async(accountNo, amount) => {
-    accountSchema.findOne({accountNo:accountNo}),
-        (err, data)=>{
-            if(err || data == ""){
-                return new Error("failed to deposit")
-            } else{
-                accountSchema.findOneAndUpdate({accountNo:accountNo},
-                    {
-                        "$set":{
-                            balance: data.balance + amount
-                        }
-                    },
-                    (err, data)=>{
-                        if(err){
-                            return new Error("failed to deposit")
-                        } else{
+    const data = accountSchema.findOne({accountNo:accountNo})
+    
+    if (!data) {
+        return null;
+    }
 
-                        }}
-                )
-        }}
+    const update = await accountSchema.findOneAndUpdate({ accountNo: accountNo },
+    {
+        "$set": {
+            balance: data.balance + amount
+        }
+    })
+
+    if (!update) {
+        return null;
+    } else {
+        return update;
+    }
 }
 
 module.exports = { depositAmount }

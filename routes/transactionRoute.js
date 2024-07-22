@@ -4,11 +4,12 @@ const { depositAmount } = require("../helper/transHelper")
 const router = express.Router()
 
 router.post("/deposit", async (req, res)=>{
-    const { perior, amount, accountNo} = req.body;
-    try {
-        await depositAmount(accountNo, amount)
-    } catch(error){
-        return res.status(500).send(error)
+    const { amount, accountNo} = req.body;
+
+    const result = await depositAmount(accountNo, amount);
+    
+    if(!result){
+        return res.status(500).send("failed to deposit")
     }
 
     const newTransaction = new transactionSchema({
