@@ -2,6 +2,8 @@ const express = require("express");
 const router = express.Router();
 const userSchema = require("../schema/userSchema");
 const accountSchema = require("../schema/accountSchema");
+const transactionSchema = require("../schema/transactionSchema");
+const { generateToken } = require("../JWT/JWT");
 
 router.post("/register", async (req, res) => {
     const { name, email, username, password } = req.body;
@@ -33,9 +35,9 @@ router.post("/login", async (req, res) => {
             password: password
         })
         if (user != null) {
-            return res.status(200).send(user);
+            return res.json({token:generateToken(user._id)})
         } else {
-            return res.status(401).send("Invalid username or password.");
+            return res.status(404).send("Invalid username or password.");
         }
     } catch (err) {
         return res.status(500).send("Server error");
@@ -47,6 +49,17 @@ router.get("/acc-info/:accNo", async (req, res) => {
 
     try {
         const data = await accountSchema.findOne({ accountNo: accountNo})
+        return res.status(200).send(data);
+    } catch (err) {
+        return res.status(404).send(err);
+    }
+});
+
+router.get("/transaction/:accNo", async (req, res) => {
+    const accountNo = req.params.accNo
+
+    try {
+        const data = await transactionSchema.find({ accountNo: accountNo})
         return res.status(200).send(data);
     } catch (err) {
         return res.status(404).send(err);

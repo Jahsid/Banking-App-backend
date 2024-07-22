@@ -2,9 +2,9 @@ const express = require('express');
 const accountSchema = require('../schema/accountSchema');
 const router = express.Router()
 
-router.post("/create-acc", async (req, res)=>{
-    const {name, email, initBalance} = req.body;
-    const accountNo = Math.floor(Math.random()*10000000)
+router.post("/create-acc", async (req, res) => {
+    const { name, email, initBalance } = req.body;
+    const accountNo = Math.floor(Math.random() * 10000000)
 
     const newAcc = new accountSchema({
         holderName: name,
@@ -21,7 +21,7 @@ router.post("/create-acc", async (req, res)=>{
     }
 })
 
-router.put("/update-acc/:accNo", async (req, res)=>{
+router.put("/update-acc/:accNo", async (req, res) => {
     const accNo = req.params.accNo;
     const { name, email } = req.body;
 
@@ -34,7 +34,7 @@ router.put("/update-acc/:accNo", async (req, res)=>{
             },
             { new: true }
         );
-        
+
         if (!data) {
             return res.status(404).send("Failed to update account");
         }
@@ -44,5 +44,23 @@ router.put("/update-acc/:accNo", async (req, res)=>{
         return res.status(500).send(err);
     }
 })
+
+router.delete("/delete-acc/:accNo", async (req, res) => {
+    const accNo = req.params.accNo;
+
+    try {
+        const data = await accountSchema.findOneAndDelete({ accountNo: accNo });
+
+        if (!data) {
+            return res.status(404).json({ success: false, message: "Account not found or already deleted." });
+        }
+
+        return res.status(200).json({ success: true, message: "Account deleted successfully.", data });
+    } catch (error) {
+        console.error("Error deleting account:", error);
+        return res.status(500).json({ success: false, message: "Failed to remove account.", error: error.message });
+    }
+});
+
 
 module.exports = router;

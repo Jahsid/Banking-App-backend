@@ -5,6 +5,7 @@ require("./database/connections")
 const port = 4000
 const app = express()
 const cors = require('cors');
+const { authMiddleware } = require("./JWT/JWT")
 app.use(cors());
 app.use(morgan("dev"))
 app.use(express.json())
@@ -13,7 +14,7 @@ app.use(express.urlencoded({
 }))
 
 app.use("/public", require("./routes/publicRoute"))
-app.use("/admin", require("./routes/adminRoute"))
+app.use("/admin", authMiddleware, require("./routes/adminRoute"))
 app.use("/transaction", require("./routes/transactionRoute"))
 
 app.listen(port, ()=>{
