@@ -1,8 +1,10 @@
+require("dotenv").config();
+
 const express = require("express")
 const morgan = require('morgan')
 require("./database/connections")
 
-const port = 4000
+const port = process.env.PORT;
 const app = express()
 const cors = require('cors');
 const { authMiddleware } = require("./JWT/JWT")

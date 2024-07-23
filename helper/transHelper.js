@@ -55,13 +55,13 @@ const withdrawAmount = async (accountNo, amount) => {
 };
 
 const transferAmount = async (fromAcc, toAcc, amount) => {
-  // Start a session for transaction
-  const session = await accountSchema.startSession();
-  session.startTransaction();
+  if (amount <= 0) {
+    return { success: false, message: "Transfer amount must be greater than zero." };
+  }
 
   try {
-    const from = await accountSchema.findOne({ accountNo: fromAcc }).session(session);
-    const to = await accountSchema.findOne({ accountNo: toAcc }).session(session);
+    const from = await accountSchema.findOne({ accountNo: fromAcc });
+    const to = await accountSchema.findOne({ accountNo: toAcc });
 
     if (!from || !to) {
       throw new Error("One or both accounts not found.");
@@ -71,36 +71,26 @@ const transferAmount = async (fromAcc, toAcc, amount) => {
       throw new Error("Insufficient funds in the source account.");
     }
 
+    // Update the 'from' account
     const fromUpdate = await accountSchema.findOneAndUpdate(
       { accountNo: fromAcc },
       { "$inc": { balance: -amount } },
-      { new: true, session }
+      { new: true }
     );
 
-    if (!fromUpdate) {
-      throw new Error("Failed to update source account.");
-    }
-
+    // Update the 'to' account
     const toUpdate = await accountSchema.findOneAndUpdate(
       { accountNo: toAcc },
       { "$inc": { balance: amount } },
-      { new: true, session }
+      { new: true }
     );
 
-    if (!toUpdate) {
-      throw new Error("Failed to update destination account.");
+    if (!fromUpdate || !toUpdate) {
+      throw new Error("Failed to update accounts.");
     }
-
-    // Commit transaction
-    await session.commitTransaction();
-    session.endSession();
 
     return { success: true, message: "Transfer completed successfully." };
   } catch (error) {
-    // Abort transaction on error
-    await session.abortTransaction();
-    session.endSession();
-
     return { success: false, message: error.message };
   }
 };

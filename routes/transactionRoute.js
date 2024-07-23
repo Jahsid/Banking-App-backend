@@ -68,39 +68,66 @@ router.post("/withdraw", async (req, res) => {
 router.post("/transfer", async (req, res) => {
     const { perior, amount, accountNo } = req.body;
 
-    const result = await transferAmount(perior, accountNo, amount)
-
-    if (!result) {
-        return res.status(500).send("Failed to transfer")
+    // Validate input
+    if (!perior || !amount || !accountNo || amount <= 0) {
+        return res.status(400).send("Invalid request data.");
     }
 
-    const withTrans = new transactionSchema({
-        perior: perior,
-        transType: "DEBIT",
-        amount: amount,
-        "datetime.date": new Date().toLocaleDateString(),
-        "datetime.time": new Date().toLocaleTimeString(),
-        accountNo: accountNo
-    })
+    let session;
 
-    const depTrans = new transactionSchema({
-        perior: accountNo,
-        transType: "CREDIT",
-        amount: amount,
-        "datetime.date": new Date().toLocaleDateString(),
-        "datetime.time": new Date().toLocaleTimeString(),
-        accountNo: accountNo
-    })
+    try {
+        // Perform the transfer
+        const result = await transferAmount(perior, accountNo, amount);
 
-    const t1 = await withTrans.save();
-    const t2 = await depTrans.save();
+        if (!result.success) {
+            return res.status(500).send(`Failed to transfer: ${result.message}`);
+        }
 
-    if (t1 != null && t2 != null) {
-        return res.send("amount transfer")
-    } else {
-        return res.status(500).send("failed to transfer")
+        // Start a session for transaction
+        session = await transactionSchema.startSession();
+        session.startTransaction();
+
+        // Record the transactions
+        const withTrans = new transactionSchema({
+            perior: perior,
+            transType: "DEBIT",
+            amount: amount,
+            "datetime.date": new Date().toLocaleDateString(),
+            "datetime.time": new Date().toLocaleTimeString(),
+            accountNo: accountNo
+        });
+
+        const depTrans = new transactionSchema({
+            perior: accountNo,
+            transType: "CREDIT",
+            amount: amount,
+            "datetime.date": new Date().toLocaleDateString(),
+            "datetime.time": new Date().toLocaleTimeString(),
+            accountNo: accountNo
+        });
+
+        const t1 = await withTrans.save({ session });
+        const t2 = await depTrans.save({ session });
+
+        if (!t1 || !t2) {
+            throw new Error("Failed to save transaction records.");
+        }
+
+        // Commit the transaction
+        await session.commitTransaction();
+        session.endSession();
+
+        return res.send("Amount transferred successfully.");
+    } catch (error) {
+        // Abort the transaction if there is an error
+        if (session) {
+            await session.abortTransaction();
+            session.endSession();
+        }
+        return res.status(500).send(`Failed to transfer: ${error.message}`);
     }
+});
 
-})
+
 
 module.exports = router;

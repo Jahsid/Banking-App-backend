@@ -1,6 +1,7 @@
-const mongoose = require("mongoose")
+const mongoose = require("mongoose");
+require('dotenv').config();
 
-const localDB = "mongodb://localhost:27017/banking"
+const localDB = process.env.DB_CONNECTION_STRING;
 
 mongoose.connect(localDB, {
     // useNewUrlParser: true,
@@ -8,5 +9,5 @@ mongoose.connect(localDB, {
 }).then(()=>{
     console.log("Database connected")
 }).catch((err)=>{
-    console.log(err)
+    console.log("Database connection error:", err);
 })
